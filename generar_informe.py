@@ -180,7 +180,7 @@ def main() -> None:
     RAM, el flag <code>--dask</code> activa lectura lazy con Dask sin cambiar el resto del pipeline.
     Esta decisión se documenta explícitamente porque durante el desarrollo la máquina disponible
     tenía recursos limitados (16 GB RAM, ~2,5 GB libres al momento de correr el pipeline completo),
-    lo que fue una restricción real (ver sección 6).
+    lo que fue una restricción real (ver sección 7).
     </p>
     <p>
     Toda operación con aleatoriedad (imputación, partición train/test 70/30, inicialización de
@@ -391,6 +391,43 @@ def main() -> None:
     semana anterior. La PACF muestra que, controlando por rezagos intermedios, el rezago 7 sigue
     siendo el más relevante después del rezago 1.</div>
 
+    <h3>3.6 Distribución por canal, hora del día y género</h3>
+    <p>
+    Como complemento al análisis por CANAL de las secciones anteriores, esta sección describe con
+    qué frecuencia se usa cada canal, a qué horas se concentran las ventas y si hay diferencias de
+    edad entre géneros — información relevante para dotación de personal y campañas horarias.
+    </p>
+    <table class="ultima">
+        <tr><th>Canal</th><th>N° de transacciones</th><th>% del total</th></tr>
+        {"".join(f"<tr><td>{canal}</td><td>{fmt(cnt,0)}</td><td>{fmt(eda['distribucion_canal']['porcentaje'][canal])}%</td></tr>" for canal, cnt in eda['distribucion_canal']['conteo'].items())}
+    </table>
+    <p>
+    El canal POS (venta presencial en el local) concentra el
+    {fmt(eda['distribucion_canal']['porcentaje'].get('POS', 0))}% de las transacciones; los canales
+    digitales (WEB, APP) juntos no llegan al 4%, y CCT es prácticamente residual
+    ({fmt(eda['distribucion_canal']['porcentaje'].get('CCT', 0))}%, apenas
+    {fmt(eda['distribucion_canal']['conteo'].get('CCT', 0),0)} transacciones). Esta fuerte
+    concentración en un solo canal es el "sesgo de canal" que se menciona como limitación en la
+    sección 4.4: cualquier conclusión sobre CCT en particular descansa sobre muy pocos datos.
+    </p>
+
+    <img class="plot" src="{img_b64('ventas_por_hora.png')}"/>
+    <div class="caption">Figura 7. Ventas totales por hora del día. La actividad es prácticamente
+    nula entre las 00:00 y las 07:00, crece con fuerza a partir de las 08:00-09:00 (apertura),
+    se mantiene alta durante el horario comercial y alcanza su máximo a las
+    {eda.get('hora_mayor_venta','-')}:00 horas, cayendo de nuevo después de las 20:00. El mínimo de
+    actividad (fuera del horario nocturno) ocurre cerca de las {eda.get('hora_menor_venta','-')}:00.
+    Este patrón es consistente con el horario habitual de atención de una farmacia y confirma, a
+    nivel horario, la estacionalidad diaria que ya se veía a nivel semanal en la Figura 5.</div>
+
+    <img class="plot" src="{img_b64('boxplot_edad_por_genero.png')}"/>
+    <div class="caption">Figura 8. EDAD por GÉNERO (1 = Masculino, 2 = Femenino, según el
+    enunciado). Las medianas de edad son parecidas entre ambos grupos, con una dispersión levemente
+    mayor en GENERO=1. Esta diferencia moderada en la distribución de edad, junto con la diferencia
+    de monto promedio encontrada en la hipótesis H5, sugiere que género y edad no son
+    intercambiables como variables explicativas del comportamiento de compra: aportan información
+    algo distinta.</div>
+
     <h2>4. Inferencia estadística</h2>
 
     <h3>4.1 Pruebas de hipótesis</h3>
@@ -497,13 +534,13 @@ def main() -> None:
 
     <h4>Diagnóstico de linealidad, homocedasticidad y normalidad de residuales</h4>
     <img class="plot" src="{img_b64('regresion_residuos_vs_ajustados.png')}"/>
-    <div class="caption">Figura 7. Residuos vs. valores ajustados (muestra de 5.000 puntos del
+    <div class="caption">Figura 9. Residuos vs. valores ajustados (muestra de 5.000 puntos del
     conjunto de entrenamiento). El patrón en forma de abanico, con la dispersión de los residuos
     creciendo junto con el valor ajustado, es evidencia visual de heterocedasticidad, no de una
     nube homogénea sin forma como asumiría un modelo bien especificado.</div>
 
     <img class="plot" src="{img_b64('regresion_qqplot_residuales.png')}"/>
-    <div class="caption">Figura 8. Q-Q plot de los residuales. Los puntos se apartan claramente de
+    <div class="caption">Figura 10. Q-Q plot de los residuales. Los puntos se apartan claramente de
     la recta de referencia en ambas colas, sobre todo en la cola superior, mostrando una
     distribución de residuales de cola pesada y asimétrica, no normal.</div>
 
@@ -520,7 +557,7 @@ def main() -> None:
     </table>
     <p>
     Los tres supuestos clásicos de OLS quedan comprometidos en algún grado. Sobre linealidad, el
-    gráfico de residuos vs. ajustados (Figura 7) no muestra una curvatura sistemática marcada, pero
+    gráfico de residuos vs. ajustados (Figura 9) no muestra una curvatura sistemática marcada, pero
     sí una asimetría hacia residuos positivos grandes, coherente con la cola larga de MONTO
     APLICADO. El test de Breusch-Pagan rechaza la hipótesis de varianza constante
     ({pval_fmt(reg['diagnostics']['breusch_pagan']['p_value'])}): el modelo es heterocedástico, es
@@ -528,7 +565,7 @@ def main() -> None:
     Jarque-Bera también rechaza la normalidad de los residuales
     ({pval_fmt(reg['diagnostics']['jarque_bera']['p_value'])}, asimetría =
     {fmt(reg['diagnostics']['jarque_bera']['skew'])}, curtosis =
-    {fmt(reg['diagnostics']['jarque_bera']['kurtosis'])}), consistente con el Q-Q plot (Figura 8).
+    {fmt(reg['diagnostics']['jarque_bera']['kurtosis'])}), consistente con el Q-Q plot (Figura 10).
     </p>
     <p>
     En la práctica esto significa que los p-values e intervalos de confianza reportados para los
@@ -557,31 +594,51 @@ def main() -> None:
     <h3>4.3 Modelado descriptivo — Opción B: clustering de clientes (K-Means)</h3>
     <p>
     Se segmentaron los clientes (agrupados por CODIGO CLIENTE) usando 4 variables agregadas: monto
-    total gastado, total de ítems comprados, número de transacciones distintas y descuento promedio
-    recibido, estandarizadas con StandardScaler antes de aplicar K-Means (k=4, semilla {r['seed']},
-    entrenado sobre partición 70% y evaluado sobre el 100% de los clientes).
+    total gastado, total de unidades/ítems comprados, número de transacciones distintas y descuento
+    promedio recibido, estandarizadas con StandardScaler antes de aplicar K-Means (semilla
+    {r['seed']}, entrenado sobre partición 70% y evaluado sobre el 100% de los clientes).
     </p>
+
+    <h4>Elección de k: método del codo</h4>
+    <img class="plot" src="{img_b64('clustering_metodo_codo.png')}"/>
+    <div class="caption">Figura 11. Inercia (WCSS) para k entre 2 y 8. La curva decrece de forma
+    continua, sin un quiebre único y dramático; el mayor cambio de pendiente ocurre entre k=3 y
+    k=5, después del cual las mejoras marginales son cada vez menores. Se eligió k=4 dentro de ese
+    rango por ser un número de segmentos interpretable y accionable para el negocio (campañas
+    diferenciadas por perfil de cliente), no por ser el único "codo" matemáticamente obvio — con
+    curvas de inercia suaves como esta, la elección final combina evidencia cuantitativa y criterio
+    de negocio.</div>
+
     <table class="ultima">
         <tr><th>Métrica</th><th>Valor</th></tr>
-        <tr><td>Silhouette score</td><td>{fmt(clu['silhouette_score'],3)}</td></tr>
-        <tr><td>Inercia (WCSS)</td><td>{fmt(clu['inertia'],0)}</td></tr>
+        <tr><td>Silhouette score (k=4)</td><td>{fmt(clu['silhouette_score'],3)}</td></tr>
+        <tr><td>Inercia (WCSS, k=4)</td><td>{fmt(clu['inertia'],0)}</td></tr>
     </table>
+
+    <h4>Perfil de cada clúster</h4>
+    <p>
+    A diferencia de solo reportar cuántos clientes tiene cada clúster, esta tabla describe qué
+    caracteriza a cada uno en las unidades originales (no estandarizadas), para poder interpretar
+    los segmentos en términos de negocio:
+    </p>
     <table class="ultima">
-        <tr><th>Clúster</th><th>N° de clientes</th><th>% del total</th></tr>
-        {"".join(f"<tr><td>{k}</td><td>{fmt(v,0)}</td><td>{fmt(100*v/sum(clu['cluster_sizes'].values()),1)}%</td></tr>" for k, v in clu['cluster_sizes'].items())}
+        <tr><th>Clúster</th><th>N° de clientes</th><th>% del total</th><th>Monto total prom.</th><th>Unidades prom.</th><th>Transacciones prom.</th><th>Descuento prom.</th></tr>
+        {"".join(f"<tr><td>{k}</td><td>{fmt(clu['cluster_sizes'][k],0)}</td><td>{fmt(100*clu['cluster_sizes'][k]/sum(clu['cluster_sizes'].values()),1)}%</td><td>${fmt(v['total_monto'],0)}</td><td>{fmt(v['total_unidades'],1)}</td><td>{fmt(v['n_transacciones'],1)}</td><td>{fmt(v['descuento_prom'],2)}</td></tr>" for k, v in sorted(clu['cluster_profile'].items(), key=lambda kv: -kv[1]['total_monto']))}
     </table>
     <p>
     Un silhouette score de {fmt(clu['silhouette_score'],3)} (escala -1 a 1) indica una separación
-    moderada-buena entre los 4 segmentos de clientes: los grupos son razonablemente distinguibles
-    entre sí. El clúster más grande concentra aproximadamente el
-    {fmt(100*max(clu['cluster_sizes'].values())/sum(clu['cluster_sizes'].values()),0)}% de los
-    clientes (perfil estándar, bajo gasto/baja frecuencia), mientras que el clúster más pequeño
-    (~{fmt(100*min(clu['cluster_sizes'].values())/sum(clu['cluster_sizes'].values()),1)}%)
-    probablemente corresponde a clientes de alto valor (alta frecuencia y/o alto gasto acumulado),
-    útil para campañas de fidelización dirigidas. Cabe notar que, dado que un porcentaje
-    considerable de CODIGO CLIENTE distintos realiza muy pocas compras (mediana de FRECUENCIA
-    COMPRA = {fmt(desc['50%']['FRECUENCIA COMPRA'],0)}), varios clústeres pueden estar dominados por
-    clientes de compra única.
+    moderada-buena entre los 4 segmentos: son razonablemente distinguibles entre sí. Ordenando los
+    clústeres por monto total promedio, el perfil de negocio es bastante claro: un segmento de
+    <b>alto valor</b> (monto total promedio muy por encima del resto, con más transacciones y
+    unidades acumuladas) que representa una fracción pequeña de la base pero un peso comercial
+    desproporcionado; uno o dos segmentos <b>intermedios</b>; y un segmento de <b>bajo compromiso</b>
+    con monto y frecuencia bajos, y notoriamente el descuento promedio más bajo de los cuatro
+    (posiblemente clientes sin convenio o programa de fidelización asociado). El clúster de mayor
+    volumen de clientes corresponde justamente al perfil de bajo gasto/baja frecuencia, consistente
+    con que un porcentaje considerable de CODIGO CLIENTE distintos realiza muy pocas compras
+    (mediana de FRECUENCIA COMPRA = {fmt(desc['50%']['FRECUENCIA COMPRA'],0)}): varios clústeres
+    reflejan en parte esa base de clientes ocasionales. El segmento de alto valor es el más
+    accionable para campañas de fidelización dirigidas, dado su peso desproporcionado en ingresos.
     </p>
 
     <h3>4.4 Validación de modelos y extrapolabilidad</h3>
@@ -618,7 +675,75 @@ def main() -> None:
     variable de producto y una ventana temporal más larga.
     </p>
 
-    <h2>5. Justificación de las librerías utilizadas</h2>
+    <h2>5. Justificación de las técnicas estadísticas utilizadas</h2>
+    <p>
+    Esta sección reúne, en un solo lugar, por qué se eligió cada técnica y no una alternativa
+    razonable, más allá de qué librería la implementa (eso se detalla en la sección 6).
+    </p>
+    <h4>Detección de outliers: IQR y Z-score, no DBSCAN</h4>
+    <p>
+    El enunciado permite IQR, Z-score o DBSCAN. Se usaron los dos primeros porque MONTO APLICADO es
+    una variable unidimensional y ambos métodos son estándar, baratos de calcular sobre 3,24
+    millones de filas y fáciles de justificar con un umbral explícito (1,5×RIC y |z|>3). DBSCAN es
+    más apropiado para detectar outliers multivariados (combinaciones inusuales entre varias
+    variables a la vez), que no era el objetivo aquí: el interés era caracterizar la cola de una
+    sola variable (monto de compra), no encontrar combinaciones atípicas entre variables.
+    </p>
+    <h4>Elección entre Pearson/Spearman y entre t-test/Welch/Mann-Whitney</h4>
+    <p>
+    En vez de asumir normalidad, el pipeline la verifica empíricamente (Shapiro-Wilk) antes de
+    decidir qué prueba usar en cada caso: Pearson y Welch t-test si hay evidencia de normalidad,
+    Spearman y Mann-Whitney U si no la hay (sección 3.1 y cada hipótesis de la sección 4.1). Dado
+    que MONTO APLICADO y PORCENTAJE DESCUENTO rechazan normalidad de forma contundente, en la
+    práctica casi todas las comparaciones terminan usando las versiones no paramétricas, que no
+    asumen una distribución subyacente y son más robustas a los outliers de cola larga documentados
+    en la sección 2.4.
+    </p>
+    <h4>Chi-cuadrado y ANOVA para variables categóricas</h4>
+    <p>
+    Chi-cuadrado se usó para CANAL × LOCAL porque ambas son variables categóricas y la pregunta es
+    de independencia (¿la distribución de canales depende del local?), no de diferencia de medias.
+    ANOVA one-way se usó para comparar MONTO APLICADO entre más de dos grupos (CANAL, GENERO)
+    porque compara la varianza entre grupos contra la varianza dentro de los grupos; para
+    comparaciones de exactamente dos grupos (H1, H3) se usó en cambio t-test/Mann-Whitney, más
+    directo para ese caso.
+    </p>
+    <h4>Regresión OLS (Opción A) y por qué no otro modelo</h4>
+    <p>
+    Se eligió una regresión lineal múltiple (OLS) en vez de alternativas como Ridge/Lasso o modelos
+    de árboles (Random Forest, Gradient Boosting) porque el objetivo explícito del enunciado es
+    interpretar coeficientes ("interpretación de coeficientes y R² ajustado"), no maximizar poder
+    predictivo puro. OLS entrega coeficientes con signo, magnitud y p-value directamente
+    interpretables en las unidades originales de negocio; un modelo de árboles habría dado
+    probablemente mejor RMSE, pero a costa de perder esa interpretabilidad directa, que es lo que
+    pide el enunciado y lo que permite las conclusiones de negocio de la sección 4.2.
+    </p>
+    <h4>K-Means (Opción B) y por qué no jerárquico o DBSCAN</h4>
+    <p>
+    Con más de 1,18 millones de clientes distintos, un clustering jerárquico (que típicamente
+    requiere una matriz de distancias O(n²) o más) es computacionalmente inviable sin muestrear
+    agresivamente, y DBSCAN exige afinar dos hiperparámetros (eps y min_samples) sin garantizar un
+    número de segmentos estable ni balanceado. K-Means escala linealmente con el número de puntos,
+    produce un número de segmentos elegido explícitamente (k), y ese número se puede justificar con
+    el método del codo (sección 4.3) más el silhouette score, dando un resultado directamente
+    accionable para negocio (ej. "4 segmentos de clientes para 4 campañas distintas").
+    </p>
+    <h4>Breusch-Pagan y Jarque-Bera para el diagnóstico de la regresión</h4>
+    <p>
+    Son los tests estándar de la literatura econométrica para homocedasticidad y normalidad de
+    residuales respectivamente, ambos disponibles directamente en statsmodels, computacionalmente
+    baratos incluso sobre el conjunto de entrenamiento completo (~2,27 millones de filas), y no
+    requieren supuestos adicionales más allá de tener ya el modelo OLS ajustado.
+    </p>
+    <h4>Partición train/test 70/30 con semilla fija</h4>
+    <p>
+    Es la proporción que pide explícitamente el enunciado; se aplicó igual a la regresión y al
+    clustering (partición 70% para entrenar K-Means, evaluación de silhouette sobre el 100% de los
+    clientes) para mantener el mismo criterio de validación en ambos modelos, con la semilla
+    CPYD_SEED garantizando que la partición sea idéntica entre corridas.
+    </p>
+
+    <h2>6. Justificación de las librerías utilizadas</h2>
     <table class="ultima">
         <tr><th>Librería</th><th>Uso en el proyecto</th></tr>
         <tr><td>pandas</td><td>Carga, limpieza y transformación tabular del dataset completo</td></tr>
@@ -631,7 +756,7 @@ def main() -> None:
         <tr><td>concurrent.futures (librería estándar)</td><td>Paralelización real de estadísticos agregados por partición, sin dependencias adicionales</td></tr>
     </table>
 
-    <h2>6. Dificultades encontradas y cómo se resolvieron</h2>
+    <h2>7. Dificultades encontradas y cómo se resolvieron</h2>
     <table class="ultima">
         <tr><th>Dificultad</th><th>Cómo se detectó</th><th>Resolución</th></tr>
         <tr><td>El CSV real usa ; como separador y comillas, no coma como indica el enunciado</td>
@@ -667,7 +792,7 @@ def main() -> None:
             para casos donde el trabajo por partición sea más pesado</td></tr>
     </table>
 
-    <h2>7. Rigor metodológico y reproducibilidad</h2>
+    <h2>8. Rigor metodológico y reproducibilidad</h2>
     <p>
     Se usó una semilla única (CPYD_SEED, valor {r['seed']}) propagada a la imputación, la partición
     train/test y la inicialización de K-Means. La elección de test estadístico en cada caso se
@@ -679,7 +804,7 @@ def main() -> None:
     para regenerar este informe a partir de <code>outputs/resultados.json</code>.
     </p>
 
-    <h2>8. Conclusiones</h2>
+    <h2>9. Conclusiones</h2>
     <p>
     El análisis sobre {fmt(n_clean,0)} transacciones válidas de Cruz Morada confirma la presencia de
     estacionalidad semanal fuerte en las ventas, diferencias significativas de ticket promedio entre

@@ -123,7 +123,9 @@ def _diagnose_assumptions(model, output_dir: Path | None = None) -> dict:
     }
 
 
-def run_clustering_model(df: pd.DataFrame, n_clusters: int = 4) -> dict:
+def run_clustering_model(
+    df: pd.DataFrame, n_clusters: int = 4, output_dir: Path | None = None
+) -> dict:
     """
     Opción B: K-means para segmentar clientes por comportamiento de compra.
     """
@@ -149,6 +151,11 @@ def run_clustering_model(df: pd.DataFrame, n_clusters: int = 4) -> dict:
     )
     X_train = X[train_idx]
 
+    # Método del codo: se ajusta K-Means para k=2..8 sobre el mismo train set y
+    # se grafica la inercia (WCSS) para justificar por qué se elige k=4 en vez
+    # de asumirlo sin evidencia.
+    elbow_inertias = _compute_elbow_curve(X_train, output_dir)
+
     kmeans = KMeans(n_clusters=n_clusters, random_state=SEED, n_init=10)
     kmeans.fit(X_train)
     labels = kmeans.predict(X)
@@ -161,13 +168,46 @@ def run_clustering_model(df: pd.DataFrame, n_clusters: int = 4) -> dict:
         silhouette_score(X, labels, sample_size=sil_sample_size, random_state=SEED)
     )
 
+    # Perfil de cada clúster: promedio de las variables originales (no
+    # estandarizadas) por clúster, para poder describir qué representa cada
+    # segmento (ej. "clúster de alto gasto") y no solo cuántos clientes tiene.
+    profiled = client_features.copy()
+    profiled["cluster"] = labels
+    cluster_profile = profiled.groupby("cluster").mean().round(1).to_dict(orient="index")
+
     return {
         "model_type": "K-Means Clustering",
         "n_clusters": n_clusters,
         "silhouette_score": sil,
         "inertia": float(kmeans.inertia_),
         "cluster_sizes": pd.Series(labels).value_counts().to_dict(),
+        "cluster_profile": cluster_profile,
+        "elbow_inertias": elbow_inertias,
     }
+
+
+def _compute_elbow_curve(X_train: np.ndarray, output_dir: Path | None = None) -> dict:
+    """Ajusta K-Means para k=2..8 y grafica la inercia (WCSS) resultante."""
+    ks = list(range(2, 9))
+    inertias = []
+    for k in ks:
+        km = KMeans(n_clusters=k, random_state=SEED, n_init=10)
+        km.fit(X_train)
+        inertias.append(float(km.inertia_))
+
+    out = output_dir or OUTPUT_DIR / "eda"
+    out.mkdir(parents=True, exist_ok=True)
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.plot(ks, inertias, marker="o")
+    ax.set_xlabel("Número de clústeres (k)")
+    ax.set_ylabel("Inercia (WCSS)")
+    ax.set_title("Método del codo para elegir k")
+    plt.tight_layout()
+    plt.savefig(out / "clustering_metodo_codo.png", dpi=150)
+    plt.close()
+
+    return dict(zip(ks, inertias))
 
 
 def _compute_vif(df: pd.DataFrame, volume_col: str = "UNIDADES") -> dict:

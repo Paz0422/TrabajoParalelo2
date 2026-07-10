@@ -209,6 +209,18 @@ def run_eda(df) -> dict:
     results["chi2_canal_local"] = chi_square_canal_local(df)
     results["anova_monto_canal"] = anova_monto_by_canal(df)
 
+    if "CANAL" in df.columns:
+        conteo_canal = df["CANAL"].value_counts()
+        results["distribucion_canal"] = {
+            "conteo": conteo_canal.to_dict(),
+            "porcentaje": (conteo_canal / len(df) * 100).round(2).to_dict(),
+        }
+
+    if "HORA" in df.columns:
+        ventas_por_hora = df.groupby("HORA")["MONTO APLICADO"].sum()
+        results["hora_mayor_venta"] = int(ventas_por_hora.idxmax())
+        results["hora_menor_venta"] = int(ventas_por_hora.idxmin())
+
     daily = daily_sales_series(df)
     results["daily_sales_summary"] = {
         "mean": float(daily.mean()),

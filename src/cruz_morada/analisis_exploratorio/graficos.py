@@ -28,6 +28,8 @@ def generate_eda_plots(df: pd.DataFrame, output_dir: Path | None = None) -> Path
     _plot_histograms_with_density(df, available, out)
     _plot_boxplots_by_channel(df, out)
     _plot_correlation_heatmap(df, available, out)
+    _plot_ventas_por_hora(df, out)
+    _plot_boxplot_edad_por_genero(df, out)
 
     logger.info("Gráficos EDA guardados en %s", out)
     return out
@@ -53,6 +55,32 @@ def _plot_boxplots_by_channel(df: pd.DataFrame, out: Path) -> None:
     ax.set_title("MONTO APLICADO por CANAL")
     plt.tight_layout()
     plt.savefig(out / "boxplot_monto_por_canal.png", dpi=150)
+    plt.close()
+
+
+def _plot_ventas_por_hora(df: pd.DataFrame, out: Path) -> None:
+    if "HORA" not in df.columns:
+        return
+    ventas_hora = df.groupby("HORA")["MONTO APLICADO"].sum().reindex(range(24), fill_value=0)
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.bar(ventas_hora.index, ventas_hora.values)
+    ax.set_xlabel("Hora del día")
+    ax.set_ylabel("MONTO APLICADO total (CLP)")
+    ax.set_title("Ventas totales por hora del día")
+    ax.set_xticks(range(0, 24, 2))
+    plt.tight_layout()
+    plt.savefig(out / "ventas_por_hora.png", dpi=150)
+    plt.close()
+
+
+def _plot_boxplot_edad_por_genero(df: pd.DataFrame, out: Path) -> None:
+    if "GENERO" not in df.columns or "EDAD" not in df.columns:
+        return
+    fig, ax = plt.subplots(figsize=(8, 6))
+    sns.boxplot(data=df, x="GENERO", y="EDAD", ax=ax)
+    ax.set_title("EDAD por GÉNERO")
+    plt.tight_layout()
+    plt.savefig(out / "boxplot_edad_por_genero.png", dpi=150)
     plt.close()
 
 
