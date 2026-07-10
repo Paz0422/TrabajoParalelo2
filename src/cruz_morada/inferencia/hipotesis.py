@@ -25,19 +25,15 @@ def run_hypothesis_tests(df: pd.DataFrame) -> dict:
     """
     results: dict = {}
 
-    # --- H1: Ticket promedio APP vs WEB (ejemplo del enunciado) ---
+    # H1: ticket promedio APP vs WEB (ejemplo del enunciado)
     results["H1_ticket_app_vs_web"] = _test_ticket_by_channel(df, "APP", "WEB")
 
-    # --- H2: Descuento vs volumen de compra (ejemplo del enunciado, adaptado) ---
+    # H2: descuento vs volumen de compra (ejemplo adaptado)
     results["H2_descuento_vs_volumen"] = _test_discount_affects_units(df)
 
-    # --- H3 (propia): Ticket promedio fin de semana vs día de semana ---
+    # H3-H5: propias
     results["H3_monto_finde_vs_semana"] = _test_weekend_vs_weekday(df)
-
-    # --- H4 (propia): Correlación entre edad del cliente y monto de compra ---
     results["H4_edad_vs_monto"] = _test_age_vs_amount(df)
-
-    # --- H5 (propia): Género vs monto promedio de compra ---
     results["H5_genero_vs_monto"] = _test_gender_vs_amount(df)
 
     return results

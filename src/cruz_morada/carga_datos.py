@@ -12,8 +12,7 @@ from cruz_morada.configuracion import CHUNK_SIZE, COLUMNS
 
 logger = logging.getLogger(__name__)
 
-# Columnas de identificación personal que no participan del análisis estadístico.
-# Se descartan en la carga para reducir la huella de memoria (privacidad + eficiencia).
+# datos personales que no se usan en el análisis; se descartan al cargar para ahorrar memoria
 PII_DROP_COLUMNS = ["NOMBRES", "APELLIDOS"]
 
 
@@ -32,16 +31,10 @@ def load_csv(
     use_dask: bool = False,
     n_rows: int | None = None,
 ) -> pd.DataFrame:
-    """
-    Carga ventas_completas.csv o ventas_completas.csv.gz con lectura por fragmentos.
+    """Carga el CSV (o .csv.gz) por fragmentos; con use_dask=True usa lectura lazy.
 
-    Args:
-        csv_path: Ruta al archivo CSV o CSV.gz (pandas detecta compresión automáticamente).
-        use_dask: Si True, usa Dask para lectura lazy (útil para archivos muy grandes).
-        n_rows: Limitar filas (útil para pruebas rápidas).
-
-    Returns:
-        DataFrame de pandas con todas las columnas del enunciado (salvo PII_DROP_COLUMNS).
+    n_rows sirve para probar rápido con un subset. Devuelve todas las columnas
+    del enunciado menos las de PII_DROP_COLUMNS.
     """
     if not csv_path.exists():
         raise FileNotFoundError(

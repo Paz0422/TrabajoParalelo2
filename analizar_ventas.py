@@ -120,9 +120,7 @@ def run_preprocess(df, processor: ParallelProcessor, parallel_preprocess: bool =
     results["mcar_test"] = test_mcar_little(df)
 
     if parallel_preprocess:
-        # --- Limpieza en paralelo ---
-        # La validez de cada fila (UNIDADES>0, BOLETA>0, etc.) es independiente
-        # del resto, así que cualquier partición arbitraria es correcta aquí.
+        # limpieza: validar una fila no depende de las demás, cualquier partición sirve
         t0 = time.perf_counter()
         cleaned_parts = processor.map_partitions(df, clean_data)
         df_clean = pd.concat(cleaned_parts, ignore_index=True)
@@ -137,16 +135,10 @@ def run_preprocess(df, processor: ParallelProcessor, parallel_preprocess: bool =
 
     results["missing_after"] = report_missing_values(df_clean).to_dict()
 
-    # FRECUENCIA COMPRA e ITEMS POR BOLETA calculan groupby(CODIGO CLIENTE) y
-    # groupby(BOLETA) internamente. Una boleta pertenece siempre a un único
-    # cliente, así que particionar por hash(CODIGO CLIENTE) garantiza que
-    # ambos agrupamientos queden completos dentro de cada partición: a
-    # diferencia de particionar por LOCAL o por fecha (donde un mismo cliente
-    # puede comprar en distintos locales/días y quedar repartido entre
-    # procesos), aquí ningún cliente ni boleta se reparte entre particiones.
-    # La mediana de EDAD se calcula una sola vez sobre el DataFrame completo
-    # (ver compute_edad_mediana_global) para que la imputación sea la misma
-    # sin importar en qué partición caiga cada fila.
+    # transformación: en paralelo particiono por hash(CODIGO CLIENTE), no por
+    # LOCAL/fecha, porque FRECUENCIA COMPRA/ITEMS POR BOLETA hacen groupby y
+    # necesitan que un mismo cliente no quede repartido entre procesos
+    # (detalle en ParallelProcessor.map_partitions_by_key)
     if parallel_preprocess:
         edad_mediana_global = compute_edad_mediana_global(df_clean)
         t0 = time.perf_counter()
@@ -256,9 +248,7 @@ def main() -> int:
     df = load_csv(args.csv, use_dask=args.dask, n_rows=args.n_rows)
     all_results: dict = {"seed": SEED, "n_rows": len(df)}
 
-    # El pool de procesos se crea una sola vez y se reutiliza en todas las
-    # etapas (limpieza, transformación, estadísticos por LOCAL) en vez de
-    # crear y destruir workers en cada llamada a map_partitions.
+    # un solo pool para todas las etapas, no uno por llamada
     with ParallelProcessor(n_workers=args.workers) as processor:
         # 2. Preprocesamiento
         if args.stage in ("all", "preprocess"):

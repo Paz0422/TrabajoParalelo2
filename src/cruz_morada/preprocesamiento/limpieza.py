@@ -77,8 +77,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
         if col in df.columns:
             df[col] = pd.to_numeric(df[col], errors="coerce")
 
-    # Eliminar registros críticos inválidos (incluye BOLETA=0, error de registro:
-    # un número de boleta 0 no corresponde a un documento tributario real)
+    # BOLETA=0 no existe como documento real, se descarta junto al resto de inválidos
     before = len(df)
     df = df.dropna(subset=["MONTO APLICADO", "UNIDADES", "FECHA"])
     df = df[(df["UNIDADES"] > 0) & (df["MONTO APLICADO"] >= 0)]
@@ -90,8 +89,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     if "PORCENTAJE DESCUENTO" in df.columns:
         df["PORCENTAJE DESCUENTO"] = df["PORCENTAJE DESCUENTO"].fillna(0.0)
 
-        # PORCENTAJE DESCUENTO está definido en el enunciado como 0 a 1: valores
-        # fuera de ese rango (ej. 1.17) son error de registro, no un descuento real.
+        # el enunciado dice que es 0-1; un 1.17 (117%) es error de registro
         before_pct = len(df)
         df = df[(df["PORCENTAJE DESCUENTO"] >= 0) & (df["PORCENTAJE DESCUENTO"] <= 1)]
         if before_pct - len(df):

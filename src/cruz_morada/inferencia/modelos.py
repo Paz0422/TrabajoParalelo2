@@ -26,14 +26,11 @@ logger = logging.getLogger(__name__)
 
 
 def run_regression_model(df: pd.DataFrame) -> dict:
-    """
-    Opción A: Regresión de MONTO APLICADO ~ CANAL + LOCAL + volumen + PORCENTAJE DESCUENTO.
-    Incluye diagnóstico VIF y métricas train/test 70/30.
+    """Opción A: MONTO APLICADO ~ CANAL + LOCAL + volumen + PORCENTAJE DESCUENTO.
 
-    UNIDADES es constante (=1) en el 100% de los registros reales: incluirla como
-    predictor produce colinealidad perfecta con el intercepto (matriz de diseño no
-    invertible). Se usa ITEMS POR BOLETA (líneas de producto por transacción) como
-    proxy real de volumen de compra.
+    Uso ITEMS POR BOLETA como "volumen" en vez de UNIDADES: esta última es
+    constante (=1) en todo el dataset, y meterla como predictor deja la matriz
+    de diseño no invertible (colinealidad perfecta con el intercepto).
     """
     volume_col = "ITEMS POR BOLETA" if "ITEMS POR BOLETA" in df.columns else "UNIDADES"
     formula = f"Q('MONTO APLICADO') ~ C(CANAL) + LOCAL + Q('{volume_col}') + Q('PORCENTAJE DESCUENTO')"
@@ -68,12 +65,10 @@ def run_regression_model(df: pd.DataFrame) -> dict:
 
 
 def _diagnose_assumptions(model, output_dir: Path | None = None) -> dict:
-    """
-    Diagnóstico de supuestos de OLS sobre el conjunto de entrenamiento:
-    - Homocedasticidad: test de Breusch-Pagan (H0: varianza constante de residuales).
-    - Normalidad de residuales: test de Jarque-Bera (H0: residuales distribuidos normal).
-    - Linealidad: inspección visual del gráfico de residuos vs. valores ajustados
-      (un patrón sistemático, no una nube sin forma, indicaría mala especificación).
+    """Homocedasticidad (Breusch-Pagan) y normalidad de residuales (Jarque-Bera).
+
+    La linealidad se revisa a ojo con el gráfico de residuos vs. ajustados que
+    se guarda acá mismo (una nube sin patrón = ok, una forma sistemática no).
     """
     resid = model.resid
     fitted = model.fittedvalues
@@ -151,26 +146,22 @@ def run_clustering_model(
     )
     X_train = X[train_idx]
 
-    # Método del codo: se ajusta K-Means para k=2..8 sobre el mismo train set y
-    # se grafica la inercia (WCSS) para justificar por qué se elige k=4 en vez
-    # de asumirlo sin evidencia.
+    # k=2..8 para justificar con evidencia por qué se usa k=4
     elbow_inertias = _compute_elbow_curve(X_train, output_dir)
 
     kmeans = KMeans(n_clusters=n_clusters, random_state=SEED, n_init=10)
     kmeans.fit(X_train)
     labels = kmeans.predict(X)
 
-    # silhouette_score es O(n^2) en memoria/tiempo (matriz de distancias completa);
-    # con cientos de miles de clientes eso es inviable, así que se estima sobre una
-    # muestra aleatoria fija (semilla CPYD_SEED) en vez de la población completa.
+    # silhouette es O(n^2): con cientos de miles de clientes no se puede
+    # calcular sobre todos, se estima con una muestra fija
     sil_sample_size = min(10_000, len(X))
     sil = float(
         silhouette_score(X, labels, sample_size=sil_sample_size, random_state=SEED)
     )
 
-    # Perfil de cada clúster: promedio de las variables originales (no
-    # estandarizadas) por clúster, para poder describir qué representa cada
-    # segmento (ej. "clúster de alto gasto") y no solo cuántos clientes tiene.
+    # promedio de cada variable (sin estandarizar) por clúster, para poder
+    # decir qué es cada segmento y no solo cuántos clientes tiene
     profiled = client_features.copy()
     profiled["cluster"] = labels
     cluster_profile = profiled.groupby("cluster").mean().round(1).to_dict(orient="index")

@@ -13,15 +13,12 @@ T = TypeVar("T")
 
 
 class ParallelProcessor:
-    """
-    Ejecuta funciones sobre particiones de un DataFrame usando multiprocessing.
+    """Corre funciones sobre particiones de un DataFrame con multiprocessing.
 
-    Se puede usar como context manager (`with ParallelProcessor() as p:`) para
-    mantener un único pool de procesos vivo entre varias llamadas a
-    map_partitions/map_partitions_by_key, evitando el costo de crear y destruir
-    procesos worker en cada etapa del pipeline (carga, limpieza, transformación,
-    estadísticos). Si no se usa como context manager, cada llamada crea y cierra
-    su propio pool (sigue funcionando, solo que sin ese ahorro).
+    Usar como context manager (`with ParallelProcessor() as p:`) reutiliza el
+    mismo pool de procesos entre llamadas en vez de crear uno nuevo cada vez.
+    Sin el `with`, funciona igual pero paga el costo de arrancar/cerrar
+    procesos en cada llamada.
     """
 
     def __init__(self, n_workers: int | None = None) -> None:
@@ -58,18 +55,15 @@ class ParallelProcessor:
         n_partitions: int | None = None,
         **kwargs,
     ) -> list[T]:
-        """
-        Aplica *func* en paralelo particionando por un hash determinista de
-        *key_col*, garantizando que todas las filas de una misma clave (ej. un
-        mismo CODIGO CLIENTE) queden en la misma partición.
+        """Como map_partitions, pero particiona por hash de *key_col*.
 
-        Esto es necesario cuando *func* calcula agregaciones tipo
-        groupby(key_col) internamente (ej. frecuencia de compra por cliente):
-        particionar por columnas no relacionadas (LOCAL, fecha) podría repartir
-        las filas de un mismo cliente entre distintos procesos y subestimar la
-        agregación. El hash usado (pandas.util.hash_pandas_object) es
-        determinista entre corridas, a diferencia de hash() de Python (afectado
-        por PYTHONHASHSEED), preservando la reproducibilidad exigida por CPYD_SEED.
+        Usar esto cuando *func* haga groupby(key_col) por dentro (ej. contar
+        boletas por cliente): si particionamos por otra cosa (LOCAL, fecha),
+        las filas de un mismo cliente podrían quedar repartidas entre procesos
+        y la agregación saldría subestimada. Se usa pd.util.hash_pandas_object
+        en vez del hash() de Python porque este último no es determinista
+        entre corridas (depende de PYTHONHASHSEED), y necesitamos que el
+        particionado sea reproducible con la semilla CPYD_SEED.
         """
         partitions = self._split_by_hash(df, key_col, n_partitions or self.n_workers)
         return self._run(func, partitions, **kwargs)
