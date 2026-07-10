@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+.venv/
+env/
+
+# Datos (archivo grande)
+data/*.csv
+data/*.csv.gz
+!data/.gitkeep
+
+# Salidas generadas (regenerables con main.py)
+outputs/
+*.png
+*.pdf
+*.html
+
+# Informe técnico: es un entregable, no una salida descartable
+!/Informe_Tecnico_CruzMorada.pdf
+
+# IDE
+.vscode/
+.idea/
+*.swp
+.claude/settings.local.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Temporales
+doc_content.txt
