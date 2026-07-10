@@ -4,9 +4,9 @@ Análisis Estadístico de Datos de Ventas - Cruz Morada
 Computación Paralela y Distribuida - UTEM
 
 Uso:
-    python main.py --csv data/ventas_completas.csv
-    python main.py --csv data/ventas_completas.csv --dask --workers 4
-    set CPYD_SEED=42 && python main.py --csv data/ventas_completas.csv
+    python analizar_ventas.py --csv data/ventas_completas.csv
+    python analizar_ventas.py --csv data/ventas_completas.csv --dask --workers 4
+    set CPYD_SEED=42 && python analizar_ventas.py --csv data/ventas_completas.csv
 """
 
 from __future__ import annotations
@@ -20,17 +20,17 @@ from pathlib import Path
 # Agregar src al path para imports locales
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
-from cruz_morada.config import OUTPUT_DIR, SEED
-from cruz_morada.loader import load_csv
-from cruz_morada.parallel import ParallelProcessor
-from cruz_morada.preprocessing import (
+from cruz_morada.configuracion import OUTPUT_DIR, SEED
+from cruz_morada.carga_datos import load_csv
+from cruz_morada.paralelo import ParallelProcessor
+from cruz_morada.preprocesamiento import (
     clean_data,
     create_derived_features,
     report_missing_values,
     summarize_outliers,
     test_mcar_little,
 )
-from cruz_morada.eda import (
+from cruz_morada.analisis_exploratorio import (
     compute_descriptive_stats,
     correlation_with_pvalues,
     daily_sales_series,
@@ -39,8 +39,8 @@ from cruz_morada.eda import (
     plot_acf_pacf,
     seasonal_decomposition,
 )
-from cruz_morada.eda.descriptive import anova_monto_by_canal, chi_square_canal_local
-from cruz_morada.inference import run_hypothesis_tests, run_regression_model, run_clustering_model
+from cruz_morada.analisis_exploratorio.estadistica_descriptiva import anova_monto_by_canal, chi_square_canal_local
+from cruz_morada.inferencia import run_hypothesis_tests, run_regression_model, run_clustering_model
 
 
 def setup_logging(verbose: bool) -> None:

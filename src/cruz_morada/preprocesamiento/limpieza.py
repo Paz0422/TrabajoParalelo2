@@ -8,7 +8,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
-from cruz_morada.config import SEED
+from cruz_morada.configuracion import SEED
 
 logger = logging.getLogger(__name__)
 RNG = np.random.default_rng(SEED)

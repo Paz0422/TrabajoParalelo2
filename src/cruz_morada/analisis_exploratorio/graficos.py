@@ -11,7 +11,7 @@ import pandas as pd
 import seaborn as sns
 from scipy import stats
 
-from cruz_morada.config import OUTPUT_DIR, SEED
+from cruz_morada.configuracion import OUTPUT_DIR, SEED
 
 logger = logging.getLogger(__name__)
 sns.set_theme(style="whitegrid", palette="muted")

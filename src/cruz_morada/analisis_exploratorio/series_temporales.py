@@ -10,7 +10,7 @@ import pandas as pd
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
 from statsmodels.tsa.seasonal import seasonal_decompose
 
-from cruz_morada.config import OUTPUT_DIR
+from cruz_morada.configuracion import OUTPUT_DIR
 
 logger = logging.getLogger(__name__)
 

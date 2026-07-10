@@ -15,7 +15,7 @@ import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
-from cruz_morada.config import SEED, TRAIN_TEST_RATIO
+from cruz_morada.configuracion import SEED, TRAIN_TEST_RATIO
 
 logger = logging.getLogger(__name__)
 

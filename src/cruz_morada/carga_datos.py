@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from cruz_morada.config import CHUNK_SIZE, COLUMNS
+from cruz_morada.configuracion import CHUNK_SIZE, COLUMNS
 
 logger = logging.getLogger(__name__)
 

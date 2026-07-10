@@ -7,7 +7,7 @@ from typing import Callable, Iterable, TypeVar
 
 import pandas as pd
 
-from cruz_morada.config import N_WORKERS
+from cruz_morada.configuracion import N_WORKERS
 
 T = TypeVar("T")
 
