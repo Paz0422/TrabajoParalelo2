@@ -461,11 +461,54 @@ def main() -> None:
     </table>
     <p>
     Ningún VIF supera 5, por lo que no hay evidencia de multicolinealidad severa entre los
-    predictores retenidos. Sobre los supuestos clásicos de OLS: dado que ni MONTO APLICADO ni
-    PORCENTAJE DESCUENTO son normales (sección 3.1) y el modelo excluye variables clave (ver
-    limitaciones en 4.4), es esperable que los residuales no sean perfectamente homocedásticos ni
-    normales; esto es consistente con un R² ajustado moderado ({fmt(reg['r_squared_adj'],3)}) y se
-    discute como limitación explícita más adelante en vez de ocultarse.
+    predictores retenidos.
+    </p>
+
+    <h4>Diagnóstico de linealidad, homocedasticidad y normalidad de residuales</h4>
+    <img class="plot" src="{img_b64('regresion_residuos_vs_ajustados.png')}"/>
+    <div class="caption">Figura 7. Residuos vs. valores ajustados (muestra de 5.000 puntos del
+    conjunto de entrenamiento). El patrón en forma de abanico, con la dispersión de los residuos
+    creciendo junto con el valor ajustado, es evidencia visual de heterocedasticidad, no de una
+    nube homogénea sin forma como asumiría un modelo bien especificado.</div>
+
+    <img class="plot" src="{img_b64('regresion_qqplot_residuales.png')}"/>
+    <div class="caption">Figura 8. Q-Q plot de los residuales. Los puntos se apartan claramente de
+    la recta de referencia en ambas colas, sobre todo en la cola superior, mostrando una
+    distribución de residuales de cola pesada y asimétrica, no normal.</div>
+
+    <table class="ultima">
+        <tr><th>Test</th><th>Supuesto evaluado</th><th>Estadístico</th><th>p-value</th><th>Conclusión</th></tr>
+        <tr><td>Breusch-Pagan</td><td>Homocedasticidad (H0: varianza constante)</td>
+            <td>{fmt(reg['diagnostics']['breusch_pagan']['statistic'],1)}</td>
+            <td>{pval_fmt(reg['diagnostics']['breusch_pagan']['p_value'])}</td>
+            <td>Se rechaza H0: heterocedástico</td></tr>
+        <tr><td>Jarque-Bera</td><td>Normalidad de residuales (H0: distribución normal)</td>
+            <td>{fmt(reg['diagnostics']['jarque_bera']['statistic'],1)}</td>
+            <td>{pval_fmt(reg['diagnostics']['jarque_bera']['p_value'])}</td>
+            <td>Se rechaza H0: no normales</td></tr>
+    </table>
+    <p>
+    Los tres supuestos clásicos de OLS quedan comprometidos en algún grado. Sobre linealidad, el
+    gráfico de residuos vs. ajustados (Figura 7) no muestra una curvatura sistemática marcada, pero
+    sí una asimetría hacia residuos positivos grandes, coherente con la cola larga de MONTO
+    APLICADO. El test de Breusch-Pagan rechaza la hipótesis de varianza constante
+    ({pval_fmt(reg['diagnostics']['breusch_pagan']['p_value'])}): el modelo es heterocedástico, es
+    decir, el error de predicción crece junto con el monto de la transacción. El test de
+    Jarque-Bera también rechaza la normalidad de los residuales
+    ({pval_fmt(reg['diagnostics']['jarque_bera']['p_value'])}, asimetría =
+    {fmt(reg['diagnostics']['jarque_bera']['skew'])}, curtosis =
+    {fmt(reg['diagnostics']['jarque_bera']['kurtosis'])}), consistente con el Q-Q plot (Figura 8).
+    </p>
+    <p>
+    En la práctica esto significa que los p-values e intervalos de confianza reportados para los
+    coeficientes son aproximados y probablemente subestiman la incertidumbre real, sobre todo para
+    transacciones de monto alto (donde el error es mayor). No invalida las conclusiones cualitativas
+    del modelo (qué variables importan y en qué dirección), pero sí desaconseja usarlo para
+    construir intervalos de predicción precisos sin corregir por heterocedasticidad (por ejemplo,
+    con errores estándar robustos tipo HC3, o modelando log(MONTO APLICADO) en vez del monto en
+    escala original). Esta limitación es consistente con el R² ajustado moderado
+    ({fmt(reg['r_squared_adj'],3)}) y con la distribución fuertemente asimétrica de MONTO APLICADO
+    documentada en la sección 3.1; se reporta explícitamente en vez de ocultarse.
     </p>
     <p>
     El modelo explica solo el {fmt(reg['r_squared_adj']*100,1)}% de la variación del monto de

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import logging
+from pathlib import Path
 
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from sklearn.cluster import KMeans
@@ -13,9 +15,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
+from statsmodels.graphics.gofplots import qqplot
+from statsmodels.stats.diagnostic import het_breuschpagan
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+from statsmodels.stats.stattools import jarque_bera
 
-from cruz_morada.configuracion import SEED, TRAIN_TEST_RATIO
+from cruz_morada.configuracion import OUTPUT_DIR, SEED, TRAIN_TEST_RATIO
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +50,10 @@ def run_regression_model(df: pd.DataFrame) -> dict:
     # VIF sobre variables numéricas
     vif_data = _compute_vif(train, volume_col)
 
+    # Diagnóstico de supuestos: homocedasticidad (Breusch-Pagan) y normalidad de
+    # residuales (Jarque-Bera), más gráficos de residuos vs. ajustados y Q-Q.
+    diagnostics = _diagnose_assumptions(model)
+
     return {
         "model_type": "OLS Regression",
         "r_squared_adj": float(model.rsquared_adj),
@@ -53,7 +62,64 @@ def run_regression_model(df: pd.DataFrame) -> dict:
         "coefficients": model.params.to_dict(),
         "pvalues": model.pvalues.to_dict(),
         "vif": vif_data,
+        "diagnostics": diagnostics,
         "summary_excerpt": str(model.summary().tables[1]),
+    }
+
+
+def _diagnose_assumptions(model, output_dir: Path | None = None) -> dict:
+    """
+    Diagnóstico de supuestos de OLS sobre el conjunto de entrenamiento:
+    - Homocedasticidad: test de Breusch-Pagan (H0: varianza constante de residuales).
+    - Normalidad de residuales: test de Jarque-Bera (H0: residuales distribuidos normal).
+    - Linealidad: inspección visual del gráfico de residuos vs. valores ajustados
+      (un patrón sistemático, no una nube sin forma, indicaría mala especificación).
+    """
+    resid = model.resid
+    fitted = model.fittedvalues
+
+    bp_stat, bp_pvalue, _, _ = het_breuschpagan(resid, model.model.exog)
+    jb_stat, jb_pvalue, skew, kurtosis = jarque_bera(resid)
+
+    out = output_dir or OUTPUT_DIR / "eda"
+    out.mkdir(parents=True, exist_ok=True)
+
+    # Muestra para los gráficos: graficar 2M+ puntos es lento y poco legible.
+    rng = np.random.default_rng(SEED)
+    sample_idx = rng.choice(len(resid), size=min(5000, len(resid)), replace=False)
+    resid_sample = resid.iloc[sample_idx]
+    fitted_sample = fitted.iloc[sample_idx]
+
+    fig, ax = plt.subplots(figsize=(8, 5))
+    ax.scatter(fitted_sample, resid_sample, alpha=0.3, s=10)
+    ax.axhline(0, color="red", linewidth=1)
+    ax.set_xlabel("Valores ajustados")
+    ax.set_ylabel("Residuales")
+    ax.set_title("Residuos vs. valores ajustados (muestra de 5.000 puntos)")
+    plt.tight_layout()
+    plt.savefig(out / "regresion_residuos_vs_ajustados.png", dpi=150)
+    plt.close()
+
+    fig = qqplot(resid_sample, line="s")
+    fig.set_size_inches(8, 5)
+    plt.title("Q-Q plot de residuales (muestra de 5.000 puntos)")
+    plt.tight_layout()
+    plt.savefig(out / "regresion_qqplot_residuales.png", dpi=150)
+    plt.close()
+
+    return {
+        "breusch_pagan": {
+            "statistic": float(bp_stat),
+            "p_value": float(bp_pvalue),
+            "homocedastico": bool(bp_pvalue > 0.05),
+        },
+        "jarque_bera": {
+            "statistic": float(jb_stat),
+            "p_value": float(jb_pvalue),
+            "skew": float(skew),
+            "kurtosis": float(kurtosis),
+            "residuales_normales": bool(jb_pvalue > 0.05),
+        },
     }
 
 
