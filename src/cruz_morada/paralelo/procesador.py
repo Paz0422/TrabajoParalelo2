@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from typing import Callable, Iterable, TypeVar
+from typing import Callable, TypeVar
 
 import pandas as pd
 
@@ -13,31 +13,89 @@ T = TypeVar("T")
 
 
 class ParallelProcessor:
-    """Ejecuta funciones sobre chunks de un DataFrame usando multiprocessing."""
+    """
+    Ejecuta funciones sobre particiones de un DataFrame usando multiprocessing.
+
+    Se puede usar como context manager (`with ParallelProcessor() as p:`) para
+    mantener un único pool de procesos vivo entre varias llamadas a
+    map_partitions/map_partitions_by_key, evitando el costo de crear y destruir
+    procesos worker en cada etapa del pipeline (carga, limpieza, transformación,
+    estadísticos). Si no se usa como context manager, cada llamada crea y cierra
+    su propio pool (sigue funcionando, solo que sin ese ahorro).
+    """
 
     def __init__(self, n_workers: int | None = None) -> None:
         self.n_workers = n_workers or N_WORKERS
+        self._executor: ProcessPoolExecutor | None = None
+
+    def __enter__(self) -> "ParallelProcessor":
+        if self.n_workers > 1:
+            self._executor = ProcessPoolExecutor(max_workers=self.n_workers)
+        return self
+
+    def __exit__(self, *exc_info) -> None:
+        if self._executor is not None:
+            self._executor.shutdown(wait=True)
+            self._executor = None
 
     def map_partitions(
         self,
         df: pd.DataFrame,
-        func: Callable[[pd.DataFrame], T],
+        func: Callable[..., T],
         partition_col: str | None = None,
         n_partitions: int | None = None,
+        **kwargs,
     ) -> list[T]:
-        """Aplica *func* en paralelo sobre particiones del DataFrame."""
+        """Aplica *func* en paralelo sobre particiones arbitrarias (o por columna) del DataFrame."""
         partitions = self._split(df, partition_col, n_partitions)
-        if len(partitions) <= 1 or self.n_workers == 1:
-            return [func(part) for part in partitions]
+        return self._run(func, partitions, **kwargs)
 
-        results: list[T] = []
+    def map_partitions_by_key(
+        self,
+        df: pd.DataFrame,
+        func: Callable[..., T],
+        key_col: str,
+        n_partitions: int | None = None,
+        **kwargs,
+    ) -> list[T]:
+        """
+        Aplica *func* en paralelo particionando por un hash determinista de
+        *key_col*, garantizando que todas las filas de una misma clave (ej. un
+        mismo CODIGO CLIENTE) queden en la misma partición.
+
+        Esto es necesario cuando *func* calcula agregaciones tipo
+        groupby(key_col) internamente (ej. frecuencia de compra por cliente):
+        particionar por columnas no relacionadas (LOCAL, fecha) podría repartir
+        las filas de un mismo cliente entre distintos procesos y subestimar la
+        agregación. El hash usado (pandas.util.hash_pandas_object) es
+        determinista entre corridas, a diferencia de hash() de Python (afectado
+        por PYTHONHASHSEED), preservando la reproducibilidad exigida por CPYD_SEED.
+        """
+        partitions = self._split_by_hash(df, key_col, n_partitions or self.n_workers)
+        return self._run(func, partitions, **kwargs)
+
+    def _run(self, func: Callable[..., T], partitions: list[pd.DataFrame], **kwargs) -> list[T]:
+        if len(partitions) <= 1 or self.n_workers == 1:
+            return [func(part, **kwargs) for part in partitions]
+
+        if self._executor is not None:
+            return self._submit_all(self._executor, func, partitions, **kwargs)
+
         with ProcessPoolExecutor(max_workers=self.n_workers) as executor:
-            futures = {executor.submit(func, part): i for i, part in enumerate(partitions)}
-            ordered = [None] * len(futures)
-            for future in as_completed(futures):
-                ordered[futures[future]] = future.result()
-            results = [r for r in ordered if r is not None]
-        return results
+            return self._submit_all(executor, func, partitions, **kwargs)
+
+    @staticmethod
+    def _submit_all(
+        executor: ProcessPoolExecutor,
+        func: Callable[..., T],
+        partitions: list[pd.DataFrame],
+        **kwargs,
+    ) -> list[T]:
+        futures = {executor.submit(func, part, **kwargs): i for i, part in enumerate(partitions)}
+        ordered = [None] * len(futures)
+        for future in as_completed(futures):
+            ordered[futures[future]] = future.result()
+        return [r for r in ordered if r is not None]
 
     @staticmethod
     def _split(
@@ -54,6 +112,11 @@ class ParallelProcessor:
             df.iloc[i : i + chunk_size].copy()
             for i in range(0, len(df), chunk_size)
         ]
+
+    @staticmethod
+    def _split_by_hash(df: pd.DataFrame, key_col: str, n_buckets: int) -> list[pd.DataFrame]:
+        buckets = pd.util.hash_pandas_object(df[key_col], index=False).to_numpy() % max(1, n_buckets)
+        return [group for _, group in df.groupby(buckets, sort=False)]
 
     @staticmethod
     def sales_chunk_stats(chunk: pd.DataFrame) -> dict:

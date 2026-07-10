@@ -15,16 +15,20 @@ import argparse
 import json
 import logging
 import sys
+import time
 from pathlib import Path
 
 # Agregar src al path para imports locales
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
+
+import pandas as pd
 
 from cruz_morada.configuracion import OUTPUT_DIR, SEED
 from cruz_morada.carga_datos import load_csv
 from cruz_morada.paralelo import ParallelProcessor
 from cruz_morada.preprocesamiento import (
     clean_data,
+    compute_edad_mediana_global,
     create_derived_features,
     report_missing_values,
     summarize_outliers,
@@ -85,6 +89,18 @@ def parse_args() -> argparse.Namespace:
         help="Omitir generación de gráficos",
     )
     parser.add_argument(
+        "--parallel-preprocess",
+        action="store_true",
+        help=(
+            "Paralelizar limpieza y transformación por partición (además del "
+            "cálculo de estadísticos por LOCAL, que siempre es paralelo). "
+            "Por defecto se hace secuencial: en las mediciones sobre el "
+            "dataset completo, el overhead de serializar particiones grandes "
+            "entre procesos resultó más lento que pandas vectorizado en un "
+            "solo proceso (ver sección de dificultades del informe)."
+        ),
+    )
+    parser.add_argument(
         "--stage",
         choices=["all", "preprocess", "eda", "inference"],
         default="all",
@@ -94,7 +110,7 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def run_preprocess(df, processor: ParallelProcessor) -> tuple:
+def run_preprocess(df, processor: ParallelProcessor, parallel_preprocess: bool = False) -> tuple:
     """Parte 1: Datos y Preprocesamiento (20%)."""
     logger = logging.getLogger("pipeline.preprocess")
     results = {}
@@ -103,10 +119,52 @@ def run_preprocess(df, processor: ParallelProcessor) -> tuple:
     results["missing_before"] = report_missing_values(df).to_dict()
     results["mcar_test"] = test_mcar_little(df)
 
-    df_clean = clean_data(df)
+    if parallel_preprocess:
+        # --- Limpieza en paralelo ---
+        # La validez de cada fila (UNIDADES>0, BOLETA>0, etc.) es independiente
+        # del resto, así que cualquier partición arbitraria es correcta aquí.
+        t0 = time.perf_counter()
+        cleaned_parts = processor.map_partitions(df, clean_data)
+        df_clean = pd.concat(cleaned_parts, ignore_index=True)
+        logger.info(
+            "Limpieza en paralelo (%d particiones, %d workers): %.2fs",
+            len(cleaned_parts), processor.n_workers, time.perf_counter() - t0,
+        )
+    else:
+        t0 = time.perf_counter()
+        df_clean = clean_data(df)
+        logger.info("Limpieza secuencial (pandas vectorizado): %.2fs", time.perf_counter() - t0)
+
     results["missing_after"] = report_missing_values(df_clean).to_dict()
 
-    df_clean = create_derived_features(df_clean)
+    # FRECUENCIA COMPRA e ITEMS POR BOLETA calculan groupby(CODIGO CLIENTE) y
+    # groupby(BOLETA) internamente. Una boleta pertenece siempre a un único
+    # cliente, así que particionar por hash(CODIGO CLIENTE) garantiza que
+    # ambos agrupamientos queden completos dentro de cada partición: a
+    # diferencia de particionar por LOCAL o por fecha (donde un mismo cliente
+    # puede comprar en distintos locales/días y quedar repartido entre
+    # procesos), aquí ningún cliente ni boleta se reparte entre particiones.
+    # La mediana de EDAD se calcula una sola vez sobre el DataFrame completo
+    # (ver compute_edad_mediana_global) para que la imputación sea la misma
+    # sin importar en qué partición caiga cada fila.
+    if parallel_preprocess:
+        edad_mediana_global = compute_edad_mediana_global(df_clean)
+        t0 = time.perf_counter()
+        transformed_parts = processor.map_partitions_by_key(
+            df_clean,
+            create_derived_features,
+            key_col="CODIGO CLIENTE",
+            edad_mediana_global=edad_mediana_global,
+        )
+        df_clean = pd.concat(transformed_parts, ignore_index=True)
+        logger.info(
+            "Transformación en paralelo (%d particiones, %d workers): %.2fs",
+            len(transformed_parts), processor.n_workers, time.perf_counter() - t0,
+        )
+    else:
+        t0 = time.perf_counter()
+        df_clean = create_derived_features(df_clean)
+        logger.info("Transformación secuencial (pandas vectorizado): %.2fs", time.perf_counter() - t0)
 
     results["outliers_monto"] = summarize_outliers(df_clean, "MONTO APLICADO")
     results["outliers_unidades"] = summarize_outliers(df_clean, "UNIDADES")
@@ -182,38 +240,40 @@ def main() -> int:
     logger.info("Semilla CPYD_SEED = %d", SEED)
     logger.info("Archivo CSV: %s", args.csv)
 
-    processor = ParallelProcessor(n_workers=args.workers)
-
     # 1. Carga
     df = load_csv(args.csv, use_dask=args.dask, n_rows=args.n_rows)
     all_results: dict = {"seed": SEED, "n_rows": len(df)}
 
-    # 2. Preprocesamiento
-    if args.stage in ("all", "preprocess"):
-        df, prep_results = run_preprocess(df, processor)
-        all_results["preprocessing"] = prep_results
+    # El pool de procesos se crea una sola vez y se reutiliza en todas las
+    # etapas (limpieza, transformación, estadísticos por LOCAL) en vez de
+    # crear y destruir workers en cada llamada a map_partitions.
+    with ParallelProcessor(n_workers=args.workers) as processor:
+        # 2. Preprocesamiento
+        if args.stage in ("all", "preprocess"):
+            df, prep_results = run_preprocess(df, processor, args.parallel_preprocess)
+            all_results["preprocessing"] = prep_results
 
-    # 3. EDA
-    daily = None
-    if args.stage in ("all", "eda", "inference"):
-        if args.stage == "inference" and "preprocessing" not in all_results:
-            df, _ = run_preprocess(df, processor)
+        # 3. EDA
+        daily = None
+        if args.stage in ("all", "eda", "inference"):
+            if args.stage == "inference" and "preprocessing" not in all_results:
+                df, _ = run_preprocess(df, processor, args.parallel_preprocess)
 
-        if args.stage in ("all", "eda"):
-            eda_results, daily = run_eda(df)
-            all_results["eda"] = eda_results
+            if args.stage in ("all", "eda"):
+                eda_results, daily = run_eda(df)
+                all_results["eda"] = eda_results
 
-            if not args.skip_plots:
-                generate_eda_plots(df)
-                if daily is not None and len(daily) > 14:
-                    seasonal_decomposition(daily)
-                    plot_acf_pacf(daily)
+                if not args.skip_plots:
+                    generate_eda_plots(df)
+                    if daily is not None and len(daily) > 14:
+                        seasonal_decomposition(daily)
+                        plot_acf_pacf(daily)
 
-    # 4. Inferencia
-    if args.stage in ("all", "inference"):
-        if "eda" not in all_results and args.stage == "inference":
-            df, _ = run_preprocess(df, processor)
-        all_results["inference"] = run_inference(df)
+        # 4. Inferencia
+        if args.stage in ("all", "inference"):
+            if "eda" not in all_results and args.stage == "inference":
+                df, _ = run_preprocess(df, processor, args.parallel_preprocess)
+            all_results["inference"] = run_inference(df)
 
     # Guardar resultados JSON
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)

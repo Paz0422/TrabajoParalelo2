@@ -131,12 +131,43 @@ def main() -> None:
     de datos.
     </p>
     <p>
-    Para la parte de procesamiento paralelo, los estadísticos agregados por local (conteo y suma
-    de <code>MONTO APLICADO</code>) se calculan particionando el DataFrame por <code>LOCAL</code>
-    y distribuyendo cada partición a un proceso worker distinto mediante
-    <code>concurrent.futures.ProcessPoolExecutor</code> (módulo <code>paralelo/procesador.py</code>),
-    aprovechando varios núcleos de CPU. El número de workers se ajusta automáticamente a
-    <code>cpu_count() - 1</code> o se puede fijar con <code>--workers</code>.
+    El enunciado pide paralelizar las etapas de limpieza, transformación y cálculo de estadísticos.
+    Las tres están implementadas mediante <code>concurrent.futures.ProcessPoolExecutor</code>
+    (módulo <code>paralelo/procesador.py</code>), que reparte particiones del DataFrame entre varios
+    procesos worker (por defecto <code>cpu_count() - 1</code>, ajustable con <code>--workers</code>)
+    y mantiene un único pool de procesos vivo durante todo el pipeline, en vez de crear y destruir
+    workers en cada etapa. El cálculo de estadísticos agregados por local (conteo y suma de MONTO
+    APLICADO) siempre corre en paralelo, particionando por <code>LOCAL</code>.
+    </p>
+    <p>
+    La limpieza y la transformación de variables también están implementadas en paralelo
+    (<code>--parallel-preprocess</code>), pero <b>no se usan en paralelo por defecto</b>, y esto
+    merece explicarse porque no es una omisión sino una decisión basada en medir, no en suponer.
+    Dos de las variables derivadas (FRECUENCIA COMPRA e ITEMS POR BOLETA) calculan
+    <code>groupby(CODIGO CLIENTE)</code> y <code>groupby(BOLETA)</code> internamente; particionar
+    de forma ingenua (por ejemplo por LOCAL o por fecha, como sugiere el enunciado) puede repartir
+    las transacciones de un mismo cliente entre distintos procesos y subestimar esas agregaciones.
+    Por eso, cuando se activa el modo paralelo, la transformación particiona por un hash
+    determinista de CODIGO CLIENTE: como una boleta pertenece siempre a un único cliente, esto
+    garantiza que ningún cliente ni boleta quede repartido entre particiones. La mediana de EDAD
+    usada para imputar valores implausibles también se calcula una sola vez sobre el DataFrame
+    completo y se pasa como constante a cada partición, para no depender de cómo se particionen los
+    datos.
+    </p>
+    <p>
+    Habiendo resuelto la correctitud, medimos el desempeño real sobre las {fmt(n_raw,0)} filas del
+    dataset completo, y el resultado fue contraintuitivo: la versión secuencial (limpieza +
+    transformación con pandas vectorizado, un solo proceso) tomó 2,84 s + 4,14 s ≈ 7,0 s, mientras
+    que la versión paralela (11 workers) tomó 9,99 s + 7,07 s ≈ 17,1 s — más de 2 veces más lenta.
+    La razón es que <code>clean_data</code> y <code>create_derived_features</code> ya son
+    operaciones vectorizadas de pandas (esencialmente bucles en C sobre columnas completas);
+    partirlas en particiones y enviarlas a procesos separados agrega el costo de serializar
+    (pickle) varios cientos de miles de filas por partición y transferirlas entre procesos, un costo
+    que en este caso supera la ganancia de usar más núcleos de CPU. Por eso el pipeline usa
+    procesamiento secuencial vectorizado por defecto para estas dos etapas, y dispone del camino
+    paralelo como una implementación correcta y disponible (<code>--parallel-preprocess</code>),
+    documentada y medida, para volúmenes de datos donde el trabajo por partición sea lo
+    suficientemente pesado como para justificar el costo de comunicación entre procesos.
     </p>
     <p>
     Sobre la decisión de manejo de memoria: con {fmt(n_raw,0)} filas (~217 MB comprimidos), el
@@ -628,6 +659,12 @@ def main() -> None:
             <td>Monitoreo de memoria disponible antes de la corrida completa</td>
             <td>Se descartaron las columnas NOMBRES/APELLIDOS (datos personales no usados en el
             análisis) en la carga, reduciendo la huella de memoria</td></tr>
+        <tr><td>Paralelizar limpieza y transformación resultó más lento que la versión secuencial
+            (2,4 veces, ver sección 1), no más rápido como se esperaba inicialmente</td>
+            <td>Medición directa de tiempos con y sin --parallel-preprocess sobre el dataset completo</td>
+            <td>Se dejó la ruta secuencial como comportamiento por defecto; la ruta paralela se
+            mantiene disponible, documentada y con particionado correcto (hash de CODIGO CLIENTE),
+            para casos donde el trabajo por partición sea más pesado</td></tr>
     </table>
 
     <h2>7. Rigor metodológico y reproducibilidad</h2>

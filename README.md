@@ -39,6 +39,10 @@ python analizar_ventas.py --csv data/ventas_completas.csv --n-rows 50000
 # Semilla de reproducibilidad
 set CPYD_SEED=42
 python analizar_ventas.py --csv data/ventas_completas.csv
+
+# Limpieza y transformación también en paralelo (por defecto van secuenciales:
+# ver "Notas" más abajo, resultó más lento en las mediciones)
+python analizar_ventas.py --csv data/ventas_completas.csv --parallel-preprocess
 ```
 
 ### Etapas individuales
@@ -104,3 +108,10 @@ TrabajoParalelo2/
 - Hipótesis validadas en `inferencia/hipotesis.py`: H1 (APP vs WEB, ejemplo del enunciado), H2
   (descuento vs volumen, ejemplo adaptado), H3 (fin de semana vs día de semana), H4 (edad vs
   monto), H5 (género vs monto).
+- El cálculo de estadísticos por LOCAL siempre corre en paralelo. Limpieza y transformación de
+  variables también están implementadas en paralelo (`--parallel-preprocess`, particionando por
+  hash de `CODIGO CLIENTE` para que `FRECUENCIA COMPRA`/`ITEMS POR BOLETA` se calculen correctamente),
+  pero **no van en paralelo por defecto**: medido sobre el dataset completo, la versión paralela
+  (2,4x más lenta) pierde contra pandas vectorizado en un solo proceso, porque el costo de
+  serializar particiones grandes entre procesos supera la ganancia de usar más núcleos. Ver
+  sección 1 del informe para el detalle.
