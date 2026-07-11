@@ -20,7 +20,7 @@ outputs/
 *.html
 
 # Informe técnico y outputs: son entregables, no salidas descartables
-!/Informe_Tecnico_CruzMorada.pdf
+!/paralela_2.pdf
 !outputs/
 !outputs/**
 
