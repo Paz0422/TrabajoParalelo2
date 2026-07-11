@@ -1,0 +1,446 @@
+{
+  "seed": 7,
+  "n_rows": 3242878,
+  "preprocessing": {
+    "missing_before": {
+      "n_missing": {},
+      "pct_missing": {},
+      "dtype": {}
+    },
+    "mcar_test": {
+      "message": "No hay valores faltantes"
+    },
+    "missing_after": {
+      "n_missing": {},
+      "pct_missing": {},
+      "dtype": {}
+    },
+    "outliers_monto": {
+      "column": "MONTO APLICADO",
+      "n_iqr_outliers": 212493,
+      "pct_iqr_outliers": 6.55,
+      "n_zscore_outliers": 39973,
+      "pct_zscore_outliers": 1.23
+    },
+    "outliers_unidades": {
+      "column": "UNIDADES",
+      "n_iqr_outliers": 0,
+      "pct_iqr_outliers": 0.0,
+      "n_zscore_outliers": 0,
+      "pct_zscore_outliers": 0.0
+    },
+    "parallel_stats_by_local": {
+      "count": 3242869,
+      "sum_monto": 33012348536.0
+    }
+  },
+  "eda": {
+    "descriptive_stats": {
+      "count": {
+        "SKU": 3242869.0,
+        "UNIDADES": 3242869.0,
+        "PORCENTAJE DESCUENTO": 3242869.0,
+        "MONTO APLICADO": 3242869.0,
+        "BOLETA": 3242869.0,
+        "LOCAL": 3242869.0,
+        "GENERO": 3242869.0,
+        "MONTO POR UNIDAD": 3242869.0,
+        "EDAD": 3242869.0,
+        "FRECUENCIA COMPRA": 3242869.0,
+        "ITEMS POR BOLETA": 3242869.0,
+        "HORA": 3242869.0,
+        "DIA SEMANA": 3242869.0,
+        "MES": 3242869.0,
+        "ANIO": 3242869.0
+      },
+      "mean": {
+        "SKU": 275.7487,
+        "UNIDADES": 1.0,
+        "PORCENTAJE DESCUENTO": 0.392,
+        "MONTO APLICADO": 10179.9822,
+        "BOLETA": 1309633922.2118,
+        "LOCAL": 1243.1582,
+        "GENERO": 1.6744,
+        "MONTO POR UNIDAD": 10179.9822,
+        "EDAD": 49.566,
+        "FRECUENCIA COMPRA": 4.5001,
+        "ITEMS POR BOLETA": 1.3607,
+        "HORA": 14.748,
+        "DIA SEMANA": 2.2967,
+        "MES": 8.2973,
+        "ANIO": 2024.0
+      },
+      "std": {
+        "SKU": 189.5971,
+        "UNIDADES": 0.0,
+        "PORCENTAJE DESCUENTO": 0.108,
+        "MONTO APLICADO": 14453.2557,
+        "BOLETA": 523862692.1249,
+        "LOCAL": 2257.3284,
+        "GENERO": 0.4686,
+        "MONTO POR UNIDAD": 14453.2557,
+        "EDAD": 16.7132,
+        "FRECUENCIA COMPRA": 3.7601,
+        "ITEMS POR BOLETA": 0.7206,
+        "HORA": 3.44,
+        "DIA SEMANA": 1.9176,
+        "MES": 1.9814,
+        "ANIO": 0.0016
+      },
+      "min": {
+        "SKU": 1.0,
+        "UNIDADES": 1.0,
+        "PORCENTAJE DESCUENTO": 0.0,
+        "MONTO APLICADO": 15.0,
+        "BOLETA": 2.0,
+        "LOCAL": 3.0,
+        "GENERO": 1.0,
+        "MONTO POR UNIDAD": 15.0,
+        "EDAD": 0.0,
+        "FRECUENCIA COMPRA": 1.0,
+        "ITEMS POR BOLETA": 1.0,
+        "HORA": 0.0,
+        "DIA SEMANA": 0.0,
+        "MES": 4.0,
+        "ANIO": 2023.0
+      },
+      "25%": {
+        "SKU": 100.0,
+        "UNIDADES": 1.0,
+        "PORCENTAJE DESCUENTO": 0.35,
+        "MONTO APLICADO": 4745.0,
+        "BOLETA": 1481977872.0,
+        "LOCAL": 253.0,
+        "GENERO": 1.0,
+        "MONTO POR UNIDAD": 4745.0,
+        "EDAD": 35.8,
+        "FRECUENCIA COMPRA": 2.0,
+        "ITEMS POR BOLETA": 1.0,
+        "HORA": 12.0,
+        "DIA SEMANA": 0.0,
+        "MES": 7.0,
+        "ANIO": 2024.0
+      },
+      "50%": {
+        "SKU": 230.0,
+        "UNIDADES": 1.0,
+        "PORCENTAJE DESCUENTO": 0.4,
+        "MONTO APLICADO": 7662.0,
+        "BOLETA": 1523155820.0,
+        "LOCAL": 551.0,
+        "GENERO": 2.0,
+        "MONTO POR UNIDAD": 7662.0,
+        "EDAD": 48.6,
+        "FRECUENCIA COMPRA": 4.0,
+        "ITEMS POR BOLETA": 1.0,
+        "HORA": 15.0,
+        "DIA SEMANA": 2.0,
+        "MES": 8.0,
+        "ANIO": 2024.0
+      },
+      "75%": {
+        "SKU": 454.0,
+        "UNIDADES": 1.0,
+        "PORCENTAJE DESCUENTO": 0.5,
+        "MONTO APLICADO": 11092.0,
+        "BOLETA": 1541532975.0,
+        "LOCAL": 1045.0,
+        "GENERO": 2.0,
+        "MONTO POR UNIDAD": 11092.0,
+        "EDAD": 62.3,
+        "FRECUENCIA COMPRA": 6.0,
+        "ITEMS POR BOLETA": 2.0,
+        "HORA": 18.0,
+        "DIA SEMANA": 4.0,
+        "MES": 10.0,
+        "ANIO": 2024.0
+      },
+      "max": {
+        "SKU": 710.0,
+        "UNIDADES": 1.0,
+        "PORCENTAJE DESCUENTO": 1.0,
+        "MONTO APLICADO": 226476.0,
+        "BOLETA": 1569496463.0,
+        "LOCAL": 9168.0,
+        "GENERO": 2.0,
+        "MONTO POR UNIDAD": 226476.0,
+        "EDAD": 100.0,
+        "FRECUENCIA COMPRA": 97.0,
+        "ITEMS POR BOLETA": 14.0,
+        "HORA": 23.0,
+        "DIA SEMANA": 6.0,
+        "MES": 12.0,
+        "ANIO": 2024.0
+      },
+      "skewness": {
+        "SKU": 0.3859,
+        "UNIDADES": 0.0,
+        "PORCENTAJE DESCUENTO": 0.2968,
+        "MONTO APLICADO": 9.0603,
+        "BOLETA": -2.0766,
+        "LOCAL": 3.0435,
+        "GENERO": -0.7443,
+        "MONTO POR UNIDAD": 9.0603,
+        "EDAD": 0.2396,
+        "FRECUENCIA COMPRA": 2.7931,
+        "ITEMS POR BOLETA": 3.0028,
+        "HORA": -0.2874,
+        "DIA SEMANA": 0.2859,
+        "MES": -0.1998,
+        "ANIO": -636.6757
+      },
+      "kurtosis": {
+        "SKU": -1.278,
+        "UNIDADES": 0.0,
+        "PORCENTAJE DESCUENTO": 2.849,
+        "MONTO APLICADO": 108.2272,
+        "BOLETA": 2.3553,
+        "LOCAL": 7.7339,
+        "GENERO": -1.446,
+        "MONTO POR UNIDAD": 108.2272,
+        "EDAD": -0.7897,
+        "FRECUENCIA COMPRA": 24.8578,
+        "ITEMS POR BOLETA": 14.8658,
+        "HORA": 0.0259,
+        "DIA SEMANA": -1.0808,
+        "MES": -1.0401,
+        "ANIO": 405354.25
+      }
+    },
+    "normality_tests": {
+      "UNIDADES": {
+        "shapiro": {
+          "statistic": NaN,
+          "p_value": NaN
+        },
+        "kolmogorov_smirnov": {
+          "statistic": NaN,
+          "p_value": NaN
+        }
+      },
+      "MONTO APLICADO": {
+        "shapiro": {
+          "statistic": 0.3410748369605579,
+          "p_value": 3.1342077625755604e-86
+        },
+        "kolmogorov_smirnov": {
+          "statistic": 0.27559575873275355,
+          "p_value": 0.0
+        }
+      },
+      "PORCENTAJE DESCUENTO": {
+        "shapiro": {
+          "statistic": 0.8471790419733272,
+          "p_value": 1.2955962064908136e-56
+        },
+        "kolmogorov_smirnov": {
+          "statistic": 0.19077942865289998,
+          "p_value": 7.570446819969075e-160
+        }
+      }
+    },
+    "correlation_method": "spearman",
+    "correlation": {
+      "UNIDADES": {
+        "UNIDADES": NaN,
+        "MONTO APLICADO": NaN,
+        "PORCENTAJE DESCUENTO": NaN
+      },
+      "MONTO APLICADO": {
+        "UNIDADES": NaN,
+        "MONTO APLICADO": 1.0,
+        "PORCENTAJE DESCUENTO": 0.4827
+      },
+      "PORCENTAJE DESCUENTO": {
+        "UNIDADES": NaN,
+        "MONTO APLICADO": 0.4827,
+        "PORCENTAJE DESCUENTO": 1.0
+      }
+    },
+    "correlation_pvalues": {
+      "UNIDADES": {
+        "UNIDADES": 1.0,
+        "MONTO APLICADO": NaN,
+        "PORCENTAJE DESCUENTO": NaN
+      },
+      "MONTO APLICADO": {
+        "UNIDADES": NaN,
+        "MONTO APLICADO": 1.0,
+        "PORCENTAJE DESCUENTO": 0.0
+      },
+      "PORCENTAJE DESCUENTO": {
+        "UNIDADES": NaN,
+        "MONTO APLICADO": 0.0,
+        "PORCENTAJE DESCUENTO": 1.0
+      }
+    },
+    "chi2_canal_local": {
+      "chi2": 3242868.9999999995,
+      "p_value": 0.0,
+      "dof": 2373,
+      "significant_005": true
+    },
+    "anova_monto_canal": {
+      "f_statistic": 152.5529378513941,
+      "p_value": 7.2575422209635095e-99,
+      "significant_005": true
+    },
+    "distribucion_canal": {
+      "conteo": {
+        "POS": 3119419,
+        "WEB": 79986,
+        "APP": 43238,
+        "CCT": 226
+      },
+      "porcentaje": {
+        "POS": 96.19,
+        "WEB": 2.47,
+        "APP": 1.33,
+        "CCT": 0.01
+      }
+    },
+    "hora_mayor_venta": 18,
+    "hora_menor_venta": 4,
+    "daily_sales_summary": {
+      "mean": 84647047.52820513,
+      "std": 110230921.41952386,
+      "max_date": "2024-09-30 00:00:00"
+    }
+  },
+  "inference": {
+    "hypothesis_tests": {
+      "H1_ticket_app_vs_web": {
+        "hypothesis": "Ticket promedio APP vs WEB",
+        "test": "Mann-Whitney U",
+        "statistic": 1731339763.0,
+        "p_value": 0.7217112216722581,
+        "mean_a": 10750.4422730006,
+        "mean_b": 11167.749056084815,
+        "significant_005": false
+      },
+      "H2_descuento_vs_volumen": {
+        "hypothesis": "El % de descuento afecta el volumen de compra (items por boleta)",
+        "test": "Regresión lineal simple",
+        "variable_dependiente": "ITEMS POR BOLETA",
+        "slope": 0.06146631409106172,
+        "r_squared": 8.493881842532228e-05,
+        "p_value": 7.338959251801659e-62,
+        "significant_005": true
+      },
+      "H3_monto_finde_vs_semana": {
+        "hypothesis": "El ticket promedio (MONTO APLICADO) difiere entre fin de semana y día de semana",
+        "test": "Mann-Whitney U",
+        "statistic": 627389639498.0,
+        "p_value": 0.0,
+        "mean_finde": 9134.17261629139,
+        "mean_semana": 10374.997318894586,
+        "significant_005": true
+      },
+      "H4_edad_vs_monto": {
+        "hypothesis": "La edad del cliente se correlaciona con el monto de compra",
+        "test": "Pearson",
+        "correlation": 0.04951701739374427,
+        "p_value": 0.0,
+        "significant_005": true
+      },
+      "H5_genero_vs_monto": {
+        "hypothesis": "El género del cliente influye en el monto promedio de compra",
+        "test": "ANOVA one-way",
+        "f_statistic": 2018.3116086284153,
+        "p_value": 0.0,
+        "significant_005": true
+      }
+    },
+    "regression": {
+      "model_type": "OLS Regression",
+      "r_squared_adj": 0.16542912582379932,
+      "rmse_test": 13154.542491375127,
+      "mae_test": 6284.365220736278,
+      "coefficients": {
+        "Intercept": -12531.061916899665,
+        "C(CANAL)[T.CCT]": -611.200843733967,
+        "C(CANAL)[T.POS]": 1608.471629076674,
+        "C(CANAL)[T.WEB]": 1057.690268521879,
+        "LOCAL": -0.12874920347838512,
+        "Q('ITEMS POR BOLETA')": -64.22700130663941,
+        "Q('PORCENTAJE DESCUENTO')": 54569.688305979405
+      },
+      "pvalues": {
+        "Intercept": 0.0,
+        "C(CANAL)[T.CCT]": 0.5700177257108164,
+        "C(CANAL)[T.POS]": 2.48779874128311e-97,
+        "C(CANAL)[T.WEB]": 4.461775848142091e-29,
+        "LOCAL": 1.1187727324836076e-238,
+        "Q('ITEMS POR BOLETA')": 1.4188931101487858e-07,
+        "Q('PORCENTAJE DESCUENTO')": 0.0
+      },
+      "vif": {
+        "LOCAL": 1.2957252582389094,
+        "ITEMS POR BOLETA": 3.706394109565789,
+        "PORCENTAJE DESCUENTO": 3.823734000174453
+      },
+      "diagnostics": {
+        "breusch_pagan": {
+          "statistic": 212270.45930195285,
+          "p_value": 0.0,
+          "homocedastico": false
+        },
+        "jarque_bera": {
+          "statistic": 612707777.9020989,
+          "p_value": 0.0,
+          "skew": 7.503366534420996,
+          "kurtosis": 82.07428677338862,
+          "residuales_normales": false
+        }
+      },
+      "summary_excerpt": "=============================================================================================\n                                coef    std err          t      P>|t|      [0.025      0.975]\n---------------------------------------------------------------------------------------------\nIntercept                 -1.253e+04     85.597   -146.397      0.000   -1.27e+04   -1.24e+04\nC(CANAL)[T.CCT]            -611.2008   1076.010     -0.568      0.570   -2720.142    1497.740\nC(CANAL)[T.POS]            1608.4716     76.822     20.938      0.000    1457.903    1759.041\nC(CANAL)[T.WEB]            1057.6903     94.503     11.192      0.000     872.468    1242.912\nLOCAL                        -0.1287      0.004    -32.994      0.000      -0.136      -0.121\nQ('ITEMS POR BOLETA')       -64.2270     12.204     -5.263      0.000     -88.146     -40.308\nQ('PORCENTAJE DESCUENTO')  5.457e+04     81.422    670.206      0.000    5.44e+04    5.47e+04\n============================================================================================="
+    },
+    "clustering": {
+      "model_type": "K-Means Clustering",
+      "n_clusters": 4,
+      "silhouette_score": 0.471880375017007,
+      "inertia": 1139648.0488401265,
+      "cluster_sizes": {
+        "1": 707196,
+        "0": 237076,
+        "2": 210613,
+        "3": 28356
+      },
+      "cluster_profile": {
+        "0": {
+          "total_monto": 63176.9,
+          "total_unidades": 5.8,
+          "n_transacciones": 5.1,
+          "descuento_prom": 0.4
+        },
+        "1": {
+          "total_monto": 13661.9,
+          "total_unidades": 1.7,
+          "n_transacciones": 1.5,
+          "descuento_prom": 0.4
+        },
+        "2": {
+          "total_monto": 7685.7,
+          "total_unidades": 1.4,
+          "n_transacciones": 1.3,
+          "descuento_prom": 0.2
+        },
+        "3": {
+          "total_monto": 238196.7,
+          "total_unidades": 13.4,
+          "n_transacciones": 9.7,
+          "descuento_prom": 0.4
+        }
+      },
+      "elbow_inertias": {
+        "2": 1897722.5690437048,
+        "3": 1481646.2826512493,
+        "4": 1139648.0488401265,
+        "5": 913966.7665075485,
+        "6": 756967.7564882796,
+        "7": 657334.1290958609,
+        "8": 566197.0312405901
+      }
+    }
+  }
+}

@@ -19,8 +19,10 @@ outputs/
 *.pdf
 *.html
 
-# Informe técnico: es un entregable, no una salida descartable
+# Informe técnico y outputs: son entregables, no salidas descartables
 !/Informe_Tecnico_CruzMorada.pdf
+!outputs/
+!outputs/**
 
 # IDE
 .vscode/
