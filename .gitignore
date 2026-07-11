@@ -20,7 +20,7 @@ outputs/
 *.html
 
 # Informe técnico y outputs: son entregables, no salidas descartables
-!/paralela_2.pdf
+!/paralela_2_si.pdf
 !outputs/
 !outputs/**
 
