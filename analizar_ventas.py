@@ -6,7 +6,7 @@ Computación Paralela y Distribuida - UTEM
 Uso:
     python analizar_ventas.py --csv data/ventas_completas.csv
     python analizar_ventas.py --csv data/ventas_completas.csv --dask --workers 4
-    set CPYD_SEED=42 && python analizar_ventas.py --csv data/ventas_completas.csv
+    set CPYD_SEED=7 && python analizar_ventas.py --csv data/ventas_completas.csv
 """
 
 from __future__ import annotations

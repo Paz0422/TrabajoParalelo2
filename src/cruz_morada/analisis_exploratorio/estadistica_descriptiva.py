@@ -8,6 +8,8 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 
+from cruz_morada.configuracion import SEED
+
 logger = logging.getLogger(__name__)
 
 
@@ -72,7 +74,7 @@ def normality_tests(series: pd.Series, max_sample: int = 5000) -> dict:
     """Shapiro-Wilk y Kolmogorov-Smirnov sobre muestra."""
     sample = series.dropna()
     if len(sample) > max_sample:
-        sample = sample.sample(max_sample, random_state=42)
+        sample = sample.sample(max_sample, random_state=SEED)
 
     shapiro_stat, shapiro_p = stats.shapiro(sample)
     ks_stat, ks_p = stats.kstest(sample, stats.norm(loc=sample.mean(), scale=sample.std()).cdf)

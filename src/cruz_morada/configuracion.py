@@ -6,7 +6,7 @@ import os
 from pathlib import Path
 
 # Semilla de reproducibilidad (variable de entorno CPYD_SEED)
-SEED: int = int(os.getenv("CPYD_SEED", "42"))
+SEED: int = int(os.getenv("CPYD_SEED", "7"))
 
 # Rutas del proyecto
 PROJECT_ROOT = Path(__file__).resolve().parents[2]

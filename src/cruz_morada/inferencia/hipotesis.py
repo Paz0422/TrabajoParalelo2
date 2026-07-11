@@ -10,6 +10,8 @@ from scipy import stats
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 
+from cruz_morada.configuracion import SEED
+
 logger = logging.getLogger(__name__)
 
 
@@ -54,8 +56,8 @@ def _test_ticket_by_channel(
         return {"error": f"Datos insuficientes para {channel_a} vs {channel_b}"}
 
     # Verificar normalidad para elegir test
-    _, p_norm_a = stats.shapiro(a.sample(min(5000, len(a)), random_state=42))
-    _, p_norm_b = stats.shapiro(b.sample(min(5000, len(b)), random_state=42))
+    _, p_norm_a = stats.shapiro(a.sample(min(5000, len(a)), random_state=SEED))
+    _, p_norm_b = stats.shapiro(b.sample(min(5000, len(b)), random_state=SEED))
     normal = p_norm_a > 0.05 and p_norm_b > 0.05
 
     if normal:
@@ -127,8 +129,8 @@ def _test_weekend_vs_weekday(df: pd.DataFrame) -> dict:
     if len(a) < 2 or len(b) < 2:
         return {"error": "Datos insuficientes"}
 
-    _, p_norm_a = stats.shapiro(a.sample(min(5000, len(a)), random_state=42))
-    _, p_norm_b = stats.shapiro(b.sample(min(5000, len(b)), random_state=42))
+    _, p_norm_a = stats.shapiro(a.sample(min(5000, len(a)), random_state=SEED))
+    _, p_norm_b = stats.shapiro(b.sample(min(5000, len(b)), random_state=SEED))
     normal = p_norm_a > 0.05 and p_norm_b > 0.05
 
     if normal:

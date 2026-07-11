@@ -37,7 +37,7 @@ python analizar_ventas.py --csv data/ventas_completas.csv --dask
 python analizar_ventas.py --csv data/ventas_completas.csv --n-rows 50000
 
 # Semilla de reproducibilidad
-set CPYD_SEED=42
+set CPYD_SEED=7
 python analizar_ventas.py --csv data/ventas_completas.csv
 
 # Limpieza y transformación también en paralelo (por defecto van secuenciales:
@@ -53,26 +53,11 @@ python analizar_ventas.py --csv data/ventas_completas.csv --stage eda
 python analizar_ventas.py --csv data/ventas_completas.csv --stage inference
 ```
 
-### Informe técnico (PDF)
-
-Tras correr `analizar_ventas.py` sobre el dataset completo (genera `outputs/resultados.json` y los
-gráficos en `outputs/eda/`), el informe técnico se regenera con:
-
-```bash
-pip install xhtml2pdf
-python generar_informe.py
-```
-
-Esto produce `Informe_Tecnico_CruzMorada.pdf` en la raíz del proyecto, con todas las cifras e
-interpretaciones tomadas directamente de `outputs/resultados.json` (no hay números hardcodeados
-salvo la narrativa).
-
 ## Estructura del proyecto
 
 ```
 TrabajoParalelo2/
 ├── analizar_ventas.py       # Punto de entrada CLI
-├── generar_informe.py       # Genera el informe técnico en PDF
 ├── requirements.txt
 ├── data/                    # CSV de entrada
 ├── outputs/                 # Resultados (JSON, gráficos)
@@ -96,7 +81,7 @@ TrabajoParalelo2/
 
 ## Notas
 
-- Variable de entorno `CPYD_SEED` controla la reproducibilidad (default: 42).
+- Variable de entorno `CPYD_SEED` controla la reproducibilidad (default: 7).
 - Los resultados numéricos se guardan en `outputs/resultados.json`.
 - Los gráficos EDA se guardan en `outputs/eda/`.
 - El CSV real usa `;` como separador (no coma) y campos entre comillas; `carga_datos.py` lo detecta
